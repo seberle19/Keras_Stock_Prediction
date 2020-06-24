@@ -1,8 +1,9 @@
 '''
 Program that will take data on different Stocks and/or ETFs and will attempt
-to use this data to make predictions on the future closing price of the SPY Sector
-Spider S&P 500 ETF using a deep-learning regression model with Keras.
+to use this data to make predictions on the future closing price of a stock/ETF
+specified by the user using a deep-learning regression model with Keras.
 '''
+
 from functools import reduce
 import numpy as np
 import pandas as pd
@@ -77,7 +78,7 @@ def get_Dataframe(a_type, ticker):
     @a_type: tells whether ticker is stock or ETF
     @ticker: ticker of stock/ETF
 
-    return: Dataframe with Date and Change in price column
+    return: Dataframe with Date and Change in price column; empty if not valid
     '''
     ticker = ticker.strip("'")
 
@@ -117,8 +118,6 @@ def get_stock_and_ETF_data(user_input):
     '''
     dataframe_list = []
 
-    #/Users/ScottEberle/Desktop/Projects/TF_and_Keras/Stock_csvs/Stock_and_ETF_Data/Stocks/a.us.txt
-
     for asset_type in user_input.keys(): #stocks and ETFs
         for ticker in user_input[asset_type]:   #each individual one
             financial_data = get_Dataframe(asset_type, ticker)
@@ -128,8 +127,6 @@ def get_stock_and_ETF_data(user_input):
             dataframe_list.append(financial_data)
 
     #merge all other dataframes into one
-    # TODO: Edit this so that it asks for user input on what stock to predict
-
     merged_Frame = merge_DataFrames(dataframe_list)
 
 
@@ -171,7 +168,7 @@ def format_Data_For_Model(stock_ETF_data):
     #just desired output
     output_data = stock_ETF_data[[desired_output]].to_numpy()
     #delete first row so that today's stock and ETF readings are matched w
-    #TOMORROW's SPY change
+    #TOMORROW's output change
     y = output_data[1:,:]
 
 
@@ -180,7 +177,6 @@ def format_Data_For_Model(stock_ETF_data):
 
 
 def build_Keras_model(number_of_features=10):
-    #TODO: implement customizatino of the size and shape of the model
     '''
     Function that will build a sequantial Keras regression model
 
@@ -250,18 +246,16 @@ def main():
         stock_and_ETF_dict = get_Stocks_and_ETFs_From_User()
 
         if len(stock_and_ETF_dict['Stocks']) != 0 or len(
-                                            stock_and_ETF_dict['ETFs']) != 0:
+                                                         stock_and_ETF_dict['ETFs']) != 0:
         #check that we have the data on these stocks if yes read in the data, otherwise get new input
             model_data = get_stock_and_ETF_data(stock_and_ETF_dict)
 
 
 
 
-    #now we have stock and ETF data
-    #merge all data into one dataframe need to find out how to offset date by 1
+    #now we have stock and ETF data format it so it can be used by model
     X, y, output_title = format_Data_For_Model(model_data)
 
-    # TODO: DYNAMICALLY CREATE SEQUANTIAL MODEL?
 
     #standardize data using pipeline
     estimators = []
@@ -270,7 +264,7 @@ def main():
         number_of_features=X.shape[1], epochs=200, batch_size=5, verbose=0)))
 
 
-    #cross validate to check accuracy of predictions
+    #cross validate to check accuracy of model before making predictions
     pipeline = Pipeline(estimators)
     kfold = KFold(n_splits=5)
     results = cross_val_score(pipeline, X, y, cv=kfold)
@@ -282,7 +276,8 @@ def main():
 
     #user input for current data
     data_to_predict = get_Prediction_Data(model_data, output_title)
-
+    
+    #print results from model prediction to user
     print()
     print("___________________________________________________________________")
     print("Prediction for:", output_title, pipeline.predict(data_to_predict.reshape(1, -1)))
